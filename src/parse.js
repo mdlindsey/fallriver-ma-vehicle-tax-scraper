@@ -24,7 +24,7 @@ const parseHtml = (html) => {
     const taxInterestRaw = root.querySelector('tbody > tr:nth-of-type(17) > td:nth-of-type(7)').innerHTML
     const taxTotalRaw = root.querySelector('tbody > tr:nth-of-type(18) > td:nth-of-type(9)').innerHTML
 
-    const formatNumber = (rawTaxStr) => Number(rawTaxStr.replace(/[^0-9\.]/g, '').trim())
+    const formatNumber = (numericalStr) => Number(numericalStr.replace(/[^0-9\.]/g, '').trim())
 
     return {
         billId,
