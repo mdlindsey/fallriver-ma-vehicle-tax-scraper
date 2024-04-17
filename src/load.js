@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+const parseHtml = require('./parse')
 
 class InvoiceLoader {
     static async loadBrowser() {
@@ -13,10 +14,8 @@ class InvoiceLoader {
         return this.browser.close()
     }
 
-    static async loadInvoiceDetailsHtml(billYear, billNum) {
-        await this.loadBrowser()
+    static async loadInvoiceDetailsUrl(billYear, billNum) {
         try {
-            // Get search results
             const searchPage = await this.browser.newPage()
             await searchPage.goto('https://www.invoicecloud.com/portal/(S(nl4zqdts1bxesbq0px0xw010))/2/customerlocator.aspx?iti=9&bg=049b1175-5b72-4595-8678-466f74c646c0&vsii=3&return=1')
             await searchPage.type('[name="ctl00$ctl00$cphBody$cphBodyLeft$ctrlVSInputs$rptInputs$ctl01$txtValue"]', String(billNum))
@@ -28,9 +27,17 @@ class InvoiceLoader {
                 a => a.getAttribute('href')
             ))
             await searchPage.close()
-            // Get invoice details
+            return invoiceLinkHref
+        } catch(e) {
+            console.log(e)
+            return null
+        }
+    }
+
+    static async loadInvoiceDetailsHtml(invoiceDetailsUrl) {
+        try {
             const invoiceDetailsPage = await this.browser.newPage()
-            await invoiceDetailsPage.goto(invoiceLinkHref)
+            await invoiceDetailsPage.goto(invoiceDetailsUrl)
             const invoiceDetailsHtml = await invoiceDetailsPage.content()
             await invoiceDetailsPage.close()
             return invoiceDetailsHtml
@@ -38,6 +45,22 @@ class InvoiceLoader {
             console.log(e)
             return null
         }
+    }
+
+    static async loadInvoiceDetailsJson(billYear, billNum) {
+        await this.loadBrowser()
+        const invoiceUrl = await InvoiceLoader.loadInvoiceDetailsUrl(billYear, billNum)
+        if (!invoiceUrl) {
+            console.log('Search failed')
+            return null
+        }
+        const invoiceHtml = await InvoiceLoader.loadInvoiceDetailsHtml(invoiceUrl)
+        if (!invoiceHtml) {
+            console.log('Details failed')
+            return null
+        }
+        await this.unloadBrowser()
+        return parseHtml(invoiceHtml)
     }
 }
 
